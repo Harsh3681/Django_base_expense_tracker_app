@@ -67,7 +67,8 @@ async function loadDashboard() {
   const form = new FormData(document.getElementById("filtersForm"));
   const params = new URLSearchParams(form).toString();
 
-  const expenses = await fetch(`/api/expenses/?${params}`).then(r => r.json());
+  const payload = await fetch(`/api/expenses/?${params}`).then(r => r.json());
+  const expenses = Array.isArray(payload) ? payload : (payload.results || []);
 
   renderTotal(expenses);
   renderTable(expenses);
@@ -257,16 +258,18 @@ async function ensureRates() {
 }
 
 function convert(amount, from, to) {
-  if (!RATES || !RATES[from] || !RATES[to]) return null;
+  if (!RATES) return null;
 
-  // RATES are relative to BASE_CCY
-  // Convert from -> BASE -> to
-  // If your expense currency is INR and BASE=USD:
-  // amount_in_usd = amount / RATES["INR"]
-  const amountInBase = (from === BASE_CCY) ? amount : (amount / Number(RATES[from] || 1));
-  const out = amountInBase * Number(RATES[to]);
-  return out;
+  // must exist
+  if (!RATES[from] || !RATES[to]) return null;
+
+  const amountInBase = (from === BASE_CCY)
+    ? amount
+    : (amount / Number(RATES[from] || 1));
+
+  return amountInBase * Number(RATES[to]);
 }
+
 
 
 function categoryOptions(selected) {

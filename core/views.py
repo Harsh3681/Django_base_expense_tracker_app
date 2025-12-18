@@ -41,25 +41,27 @@
 #     return render(request, "dashboard.html")
 
 
-from django.db.models import Sum
-from django.db.models.functions import TruncMonth
 from django.shortcuts import render
-
 from django.urls import get_resolver
 
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from django.views.decorators.csrf import csrf_exempt
-
-from .models import ExchangeRate
+from rest_framework.permissions import AllowAny
 
 from .models import Expense, ExchangeRate
-from .serializers import ExpenseSerializer, ExchangeRateSerializer
+from .serializers import ExpenseSerializer
 from .services import fetch_exchange_rates
 
+
 class ExpenseViewSet(viewsets.ModelViewSet):
+    """
+    Public API for this demo app (no auth).
+    Fixes CSRF issues by disabling Session auth requirement.
+    """
     serializer_class = ExpenseSerializer
+    permission_classes = [AllowAny]
+    authentication_classes = []  # ✅ IMPORTANT: avoids CSRF/session auth issues
 
     def get_queryset(self):
         qs = Expense.objects.all().order_by("-created_at")
@@ -80,13 +82,13 @@ class ExpenseViewSet(viewsets.ModelViewSet):
         return qs
 
 
-
-@csrf_exempt
 @api_view(["POST"])
 def sync_exchange_rate(request):
+    """
+    Fetch latest exchange rates from API and store them as JSON in ExchangeRate.rates
+    """
     try:
-        base = request.data.get("base", "USD").upper()
-
+        base = (request.data.get("base") or "USD").upper()
         rates = fetch_exchange_rates(base)
 
         # keep only one row (latest)
@@ -99,46 +101,39 @@ def sync_exchange_rate(request):
 
         return Response({
             "base": obj.base,
-            "count": len(rates),
+            "count": len(obj.rates or {}),
             "status": "ok"
         })
-
     except Exception as e:
-        return Response(
-            {"error": str(e)},
-            status=500
-        )
+        return Response({"error": str(e)}, status=500)
+
 
 @api_view(["GET"])
 def latest_rates(request):
-    qs = ExchangeRate.objects.all()
+    """
+    Returns: { base: "USD", rates: { "USD": 1, "INR": 83.2, ... } }
+    ✅ FIXED: works with JSONField rates (NOT target/rate columns)
+    """
+    latest = ExchangeRate.objects.order_by("-fetched_at").first()
+    if not latest or not latest.rates:
+        return Response({"base": "USD", "rates": {}})
 
-    if not qs.exists():
-        return Response({
-            "base": "USD",
-            "rates": {}
-        })
+    rates = dict(latest.rates)
 
-    base = qs.first().base
-    rates = {r.target: float(r.rate) for r in qs}
-
-    # 🔥 IMPORTANT: include base currency as 1
-    rates[base] = 1.0
+    # Ensure base currency exists
+    if latest.base and latest.base not in rates:
+        rates[latest.base] = 1.0
 
     return Response({
-        "base": base,
+        "base": latest.base,
         "rates": rates
     })
+
 
 @api_view(["GET"])
 def debug_urls(request):
     resolver = get_resolver()
-    urls = []
-
-    for pattern in resolver.url_patterns:
-        urls.append(str(pattern))
-
-    return Response(urls)
+    return Response([str(p) for p in resolver.url_patterns])
 
 
 def dashboard(request):
