@@ -45,6 +45,8 @@ from django.db.models import Sum
 from django.db.models.functions import TruncMonth
 from django.shortcuts import render
 
+from django.urls import get_resolver
+
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -110,6 +112,18 @@ def latest_rates(request):
     if not latest:
         return Response({"base": "USD", "rates": {}})
     return Response({"base": latest.base, "rates": latest.rates})
+
+
+@api_view(["GET"])
+def debug_urls(request):
+    resolver = get_resolver()
+    urls = []
+
+    for pattern in resolver.url_patterns:
+        urls.append(str(pattern))
+
+    return Response(urls)
+
 
 def dashboard(request):
     return render(request, "dashboard.html")
