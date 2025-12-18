@@ -89,18 +89,16 @@ def sync_exchange_rate(request):
 
         rates = fetch_exchange_rates(base)
 
-        # clear old rates
+        # keep only one row (latest)
         ExchangeRate.objects.all().delete()
 
-        for target, rate in rates.items():
-            ExchangeRate.objects.create(
-                base=base,
-                target=target,
-                rate=rate
-            )
+        obj = ExchangeRate.objects.create(
+            base=base,
+            rates=rates
+        )
 
         return Response({
-            "base": base,
+            "base": obj.base,
             "count": len(rates),
             "status": "ok"
         })
@@ -110,6 +108,7 @@ def sync_exchange_rate(request):
             {"error": str(e)},
             status=500
         )
+    
 
 @api_view(["GET"])
 def latest_rates(request):
@@ -127,10 +126,16 @@ def latest_rates(request):
     # 🔥 IMPORTANT: include base currency as 1
     rates[base] = 1.0
 
+    latest = ExchangeRate.objects.order_by("-fetched_at").first()
+    if not latest:
+        return Response({"base": "USD", "rates": {}})
     return Response({
-        "base": base,
-        "rates": rates
+        "base": latest.base,
+        "rates": latest.rates
     })
+
+
+
 
 @api_view(["GET"])
 def debug_urls(request):
