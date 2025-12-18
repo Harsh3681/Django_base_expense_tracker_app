@@ -50,6 +50,7 @@ from django.urls import get_resolver
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import ExchangeRate
 
@@ -80,23 +81,35 @@ class ExpenseViewSet(viewsets.ModelViewSet):
 
 
 
+@csrf_exempt
 @api_view(["POST"])
 def sync_exchange_rate(request):
-    base = request.data.get("base", "USD")
+    try:
+        base = request.data.get("base", "USD").upper()
 
-    # fetch from API (you already have this working)
-    data = fetch_exchange_rates(base)
+        rates = fetch_exchange_rates(base)
 
-    ExchangeRate.objects.filter(base=base).delete()
+        # clear old rates
+        ExchangeRate.objects.all().delete()
 
-    for target, rate in data["rates"].items():
-        ExchangeRate.objects.create(
-            base=base,
-            target=target,
-            rate=rate
+        for target, rate in rates.items():
+            ExchangeRate.objects.create(
+                base=base,
+                target=target,
+                rate=rate
+            )
+
+        return Response({
+            "base": base,
+            "count": len(rates),
+            "status": "ok"
+        })
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=500
         )
-
-    return Response({"status": "ok"})
 
 @api_view(["GET"])
 def latest_rates(request):

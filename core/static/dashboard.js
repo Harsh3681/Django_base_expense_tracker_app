@@ -44,7 +44,7 @@ document.getElementById("addExpenseForm").addEventListener("submit", async e => 
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRFToken": getCSRFToken(),
+      // "X-CSRFToken": getCSRFToken(),
     },
     body: JSON.stringify(payload),
   });
@@ -246,7 +246,7 @@ async function ensureRates() {
   // if not available, sync now (base USD)
   await fetch("/api/integrations/exchange-rate/", {
     method: "POST",
-    headers: {"Content-Type":"application/json","X-CSRFToken": getCSRFToken()},
+    headers: {"Content-Type":"application/json"},
     body: JSON.stringify({ base: "USD" }),
   });
 
@@ -330,7 +330,7 @@ async function saveEdit(id) {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      "X-CSRFToken": getCSRFToken(),
+      // "X-CSRFToken": getCSRFToken(),
     },
     body: JSON.stringify({ note, amount, category }),
   });
@@ -348,7 +348,8 @@ async function deleteExpense(id) {
 
   const res = await fetch(`/api/expenses/${id}/`, {
     method: "DELETE",
-    headers: { "X-CSRFToken": getCSRFToken() },
+    // headers: { "X-CSRFToken": getCSRFToken() },
+    
   });
 
   if (!res.ok) {
