@@ -11,13 +11,24 @@
 
 from django.contrib import admin
 from django.urls import path, include
+from django.http import HttpResponse
 from django.shortcuts import redirect
 
+
+# 🔹 favicon fix
+def favicon(request):
+    return HttpResponse(status=204)
+
+
+# 🔹 optional: redirect root to dashboard
 def root_redirect(request):
     return redirect("/dashboard/")
 
+
 urlpatterns = [
     path("", root_redirect),
+    path("favicon.ico", favicon),
     path("admin/", admin.site.urls),
     path("", include("core.urls")),
 ]
+
