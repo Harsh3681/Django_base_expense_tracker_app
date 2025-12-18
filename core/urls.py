@@ -17,7 +17,6 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     ExpenseViewSet,
-    export_expenses_csv,
     dashboard,
 )
 
@@ -27,7 +26,6 @@ router.register("expenses", ExpenseViewSet, basename="expense")
 urlpatterns = [
     # API
     path("api/", include(router.urls)),
-    path("expenses/export/csv/", export_expenses_csv),
 
     # UI
     path("dashboard/", dashboard, name="dashboard"),
