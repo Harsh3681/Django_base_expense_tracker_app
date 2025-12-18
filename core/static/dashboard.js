@@ -257,7 +257,7 @@ async function ensureRates() {
 }
 
 function convert(amount, from, to) {
-  if (!RATES || !RATES[to]) return null;
+  if (!RATES || !RATES[from] || !RATES[to]) return null;
 
   // RATES are relative to BASE_CCY
   // Convert from -> BASE -> to
