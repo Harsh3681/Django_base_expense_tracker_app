@@ -20,7 +20,7 @@ urlpatterns = [
     path("integrations/rates/", latest_rates),
 
     # UI
-    path("dashboard/", dashboard, name="dashboard"),
+    # path("dashboard/", dashboard, name="dashboard"),
     path("debug/urls/", debug_urls),
 ]
 
