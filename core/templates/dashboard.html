@@ -1,0 +1,294 @@
+<!-- <!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Expense Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+      body { font-family: system-ui, Arial; margin: 24px; }
+      .card { max-width: 900px; padding: 18px; border: 1px solid #eee; border-radius: 14px; }
+    </style>
+  </head>
+  <body>
+    <h1>Expense Dashboard</h1>
+    <div class="card">
+      <p>Chart data is loaded from <code>/api/reports/monthly-spend/</code>.</p>
+      <canvas id="chart" height="90"></canvas>
+    </div>
+
+    <script>
+      async function loadReport() {
+        const res = await fetch("/api/reports/monthly-spend/");
+        const data = await res.json();
+        const labels = data.map(x => x.month.slice(0, 7));
+        const totals = data.map(x => Number(x.total));
+
+        const ctx = document.getElementById("chart");
+        new Chart(ctx, {
+          type: "bar",
+          data: { labels, datasets: [{ label: "Monthly Spend", data: totals }] },
+          options: { responsive: true }
+        });
+      }
+      loadReport();
+    </script>
+  </body>
+</html> -->
+
+{% load static %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Expense Tracker</title>
+
+    <!-- Tailwind CDN (fastest for demo) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+      .toast {
+        min-width: 280px;
+        max-width: 360px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        color: #fff;
+        font-weight: 500;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        animation: slideIn 0.35s ease, fadeOut 0.35s ease 3s forwards;
+      }
+
+      .toast-success {
+        background: linear-gradient(135deg, #10b981, #059669);
+      }
+      .toast-error {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+      }
+      .toast-info {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(120%);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes fadeOut {
+        to {
+          opacity: 0;
+          transform: translateX(120%);
+        }
+      }
+    </style>
+  </head>
+
+  <body class="min-h-screen bg-gray-50">
+    <div class="max-w-6xl mx-auto p-6">
+      <!-- Header -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex justify-between items-center mb-4">
+          <h1 class="text-3xl font-bold">💰 Expense Tracker</h1>
+          <button
+            onclick="openAddExpense()"
+            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            + Add Expense
+          </button>
+        </div>
+
+        <div
+          class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg p-4"
+        >
+          <p class="text-sm opacity-90">Total Expenses</p>
+          <p id="totalAmount" class="text-4xl font-bold">₹0</p>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Filters</h2>
+
+        <form
+          id="filtersForm"
+          class="grid grid-cols-1 md:grid-cols-4 gap-4"
+          onsubmit="applyFilters(event)"
+        >
+          <select name="category" class="border rounded-lg px-3 py-2">
+            <option value="all">All Categories</option>
+            <option>Food</option>
+            <option>Transport</option>
+            <option>Entertainment</option>
+            <option>Bills</option>
+            <option>Healthcare</option>
+            <option>Shopping</option>
+          </select>
+
+          <input
+            type="date"
+            name="startDate"
+            class="border rounded-lg px-3 py-2"
+          />
+          <input
+            type="date"
+            name="endDate"
+            class="border rounded-lg px-3 py-2"
+          />
+
+          <div class="flex gap-2">
+            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg">
+              Apply
+            </button>
+            <button
+              type="button"
+              onclick="resetFilters()"
+              class="border px-4 py-2 rounded-lg"
+            >
+              Clear
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Charts -->
+      <div
+        id="chartsSection"
+        class="bg-white rounded-lg shadow-md p-6 mb-6 hidden"
+      >
+        <h2 class="text-xl font-semibold mb-4">Expenses by Category</h2>
+
+        <div class="grid md:grid-cols-2 gap-8 items-start">
+          <!-- Bars -->
+          <div id="bars"></div>
+
+          <!-- Pie -->
+          <div class="relative" style="height: 320px">
+            <canvas id="pieChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="p-6">
+          <h2 class="text-xl font-semibold">All Expenses</h2>
+        </div>
+        <table class="w-full text-left border-t">
+          <thead class="bg-gray-100 text-sm text-gray-700">
+            <tr>
+              <th class="p-3 text-left">Date</th>
+              <th class="p-3 text-left">Description</th>
+              <th class="p-3 text-left">Category</th>
+              <th class="p-3 text-left">Amount</th>
+              <th class="p-3 text-left">
+                Worldwide Value
+                <span class="text-xs text-gray-500">(converted)</span>
+              </th>
+              <th class="p-3 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="expensesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add Expense Modal -->
+    <div
+      id="addExpenseModal"
+      class="fixed inset-0 bg-black/40 hidden items-center justify-center z-50"
+    >
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 relative">
+        <button
+          onclick="closeModal()"
+          class="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          ✕
+        </button>
+
+        <h2 class="text-2xl font-bold mb-6">Add New Expense</h2>
+
+        <form id="addExpenseForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Description *</label>
+            <input
+              name="note"
+              required
+              placeholder="e.g., Groceries, Coffee, Gas"
+              class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Amount (₹) *</label>
+            <input
+              name="amount"
+              type="number"
+              step="0.01"
+              required
+              class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Category *</label>
+            <select
+              name="category"
+              required
+              class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Select a category</option>
+              <option>Food</option>
+              <option>Transport</option>
+              <option>Entertainment</option>
+              <option>Bills</option>
+              <option>Healthcare</option>
+              <option>Shopping</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium mb-1">Date *</label>
+            <input
+              name="date"
+              type="date"
+              required
+              class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button
+              type="submit"
+              class="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700"
+            >
+              Add Expense
+            </button>
+            <button
+              type="button"
+              onclick="closeModal()"
+              class="px-6 py-3 border rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast container -->
+    <div
+      id="toastContainer"
+      class="fixed top-6 right-6 z-50 flex flex-col gap-3 pointer-events-none"
+    ></div>
+
+    <script src="{% static 'dashboard.js' %}"></script>
+  </body>
+</html>
