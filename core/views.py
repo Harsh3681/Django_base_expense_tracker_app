@@ -108,7 +108,6 @@ def sync_exchange_rate(request):
             {"error": str(e)},
             status=500
         )
-    
 
 @api_view(["GET"])
 def latest_rates(request):
@@ -126,16 +125,10 @@ def latest_rates(request):
     # 🔥 IMPORTANT: include base currency as 1
     rates[base] = 1.0
 
-    latest = ExchangeRate.objects.order_by("-fetched_at").first()
-    if not latest:
-        return Response({"base": "USD", "rates": {}})
     return Response({
-        "base": latest.base,
-        "rates": latest.rates
+        "base": base,
+        "rates": rates
     })
-
-
-
 
 @api_view(["GET"])
 def debug_urls(request):
