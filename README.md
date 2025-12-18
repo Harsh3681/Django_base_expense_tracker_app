@@ -88,23 +88,24 @@ Third-Party Exchange Rate API
 django-expense-tracker/
 │
 ├── core/
-│ ├── models.py # Expense & ExchangeRate models
-│ ├── views.py # API views + dashboard view
-│ ├── serializers.py # DRF serializers
-│ ├── services.py # External API integration
-│ ├── urls.py # API routing
-│ └── templates/
-│ └── dashboard.html
+│   ├── models.py          # Expense & ExchangeRate models
+│   ├── views.py           # API views + dashboard view
+│   ├── serializers.py     # DRF serializers
+│   ├── services.py        # External API integration
+│   ├── urls.py            # API routing
+│   └── templates/
+│       └── dashboard.html
 │
 ├── config/
-│ ├── settings.py # Project configuration
-│ ├── urls.py # Root URL routing
-│ └── wsgi.py
+│   ├── settings.py        # Project configuration
+│   ├── urls.py            # Root URL routing
+│   └── wsgi.py
 │
-├── static/ # Frontend JS & CSS
+├── static/                # Frontend JS & CSS
 ├── requirements.txt
 ├── manage.py
 └── README.md
+
 
 🔌 API Endpoints
 Expense APIs
